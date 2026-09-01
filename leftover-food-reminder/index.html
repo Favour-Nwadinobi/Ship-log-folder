@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A simple web application to remind you of leftover food before it expires.">
+    <title>Leftover Food Reminder</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Leftover Reminder</h1>
+            <p>Don't let good food go to waste!</p>
+        </header>
+
+        <section class="add-item-section">
+            <form id="food-form" class="glass-panel">
+                <div class="form-group">
+                    <label for="food-name">What's leftover?</label>
+                    <input type="text" id="food-name" placeholder="e.g., Lasagna, Half Onion" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label for="expiry-date">Expires On</label>
+                        <input type="date" id="expiry-date" required>
+                    </div>
+                    
+                    <div class="form-group half">
+                        <label for="food-category">Category</label>
+                        <select id="food-category">
+                            <option value="meal">Cooked Meal</option>
+                            <option value="produce">Produce</option>
+                            <option value="dairy">Dairy</option>
+                            <option value="meat">Meat</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">Add Reminder</button>
+            </form>
+        </section>
+
+        <section class="items-section">
+            <div class="items-header">
+                <h2>Your Fridge</h2>
+                <div class="stats">
+                    <span id="total-items">0 items</span>
+                </div>
+            </div>
+            
+            <div id="food-list" class="food-list">
+                <!-- Food items will be dynamically injected here -->
+            </div>
+            
+            <div id="empty-state" class="empty-state">
+                <div class="empty-icon">🍽️</div>
+                <h3>Fridge is looking empty!</h3>
+                <p>Add some leftovers above to start tracking.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
