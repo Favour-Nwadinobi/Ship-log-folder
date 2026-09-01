@@ -17,24 +17,23 @@
 <body>
     <div class="app-container">
         <header class="app-header">
-            <h1>Leftover Reminder</h1>
-            <p>Don't let good food go to waste!</p>
+            <h1 id="greeting">Good evening, favour 👋</h1>
+            <p>Keep track of your food before it goes to waste.</p>
+            <div id="header-summary" class="header-summary">
+                <span id="summary-text">0 items · Nothing expires soon</span>
+            </div>
         </header>
 
         <section class="add-item-section">
+            <h2 class="section-title">Add something to your fridge</h2>
             <form id="food-form" class="glass-panel">
-                <div class="form-group">
-                    <label for="food-name">What's leftover?</label>
-                    <input type="text" id="food-name" placeholder="e.g., Lasagna, Half Onion" required>
-                </div>
-                
                 <div class="form-row">
-                    <div class="form-group half">
-                        <label for="expiry-date">Expires On</label>
-                        <input type="date" id="expiry-date" required>
+                    <div class="form-group" style="flex: 2;">
+                        <label for="food-name">What food are you saving?</label>
+                        <input type="text" id="food-name" placeholder="Lasagna, Jollof Rice, Half Onion..." required>
                     </div>
                     
-                    <div class="form-group half">
+                    <div class="form-group" style="flex: 1;">
                         <label for="food-category">Category</label>
                         <select id="food-category">
                             <option value="meal">Cooked Meal</option>
@@ -45,6 +44,20 @@
                         </select>
                     </div>
                 </div>
+                
+                <div class="form-group">
+                    <label>When does it expire?</label>
+                    <div class="quick-dates">
+                        <button type="button" class="btn-quick-date" data-days="0">Today</button>
+                        <button type="button" class="btn-quick-date active" data-days="1">Tomorrow</button>
+                        <button type="button" class="btn-quick-date" data-days="3">+3 Days</button>
+                        <button type="button" class="btn-quick-date" id="btn-custom-date">📅 Choose date</button>
+                    </div>
+                    <!-- Hidden by default, toggled when choosing custom date -->
+                    <div id="custom-date-container" class="custom-date-container hidden">
+                        <input type="date" id="expiry-date">
+                    </div>
+                </div>
 
                 <button type="submit" class="btn-primary">Add Reminder</button>
             </form>
@@ -53,7 +66,7 @@
         <section class="items-section">
             <div class="items-header">
                 <h2>Your Fridge</h2>
-                <div class="stats">
+                <div class="stats hidden">
                     <span id="total-items">0 items</span>
                 </div>
             </div>

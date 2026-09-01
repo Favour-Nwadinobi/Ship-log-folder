@@ -1,15 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
     const foodForm = document.getElementById('food-form');
     const foodNameInput = document.getElementById('food-name');
     const expiryDateInput = document.getElementById('expiry-date');
     const foodCategoryInput = document.getElementById('food-category');
     const foodList = document.getElementById('food-list');
     const emptyState = document.getElementById('empty-state');
-    const totalItemsSpan = document.getElementById('total-items');
+    
+    // Header elements
+    const greetingText = document.getElementById('greeting');
+    const summaryText = document.getElementById('summary-text');
+    
+    // Date selection elements
+    const quickDateBtns = document.querySelectorAll('.btn-quick-date[data-days]');
+    const customDateBtn = document.getElementById('btn-custom-date');
+    const customDateContainer = document.getElementById('custom-date-container');
+
+    // State
+    let selectedQuickDays = 1; // Default to Tomorrow
+    let isCustomDate = false;
 
     // Set minimum date to today for the date picker
-    const today = new Date().toISOString().split('T')[0];
-    expiryDateInput.setAttribute('min', today);
+    const todayStr = new Date().toISOString().split('T')[0];
+    expiryDateInput.setAttribute('min', todayStr);
+    
+    // Initialize Greeting
+    setGreeting();
 
     // Load items from localStorage
     let foodItems = JSON.parse(localStorage.getItem('leftoverFoodItems')) || [];
@@ -17,14 +33,55 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial render
     renderItems();
 
-    // Form submission handler
+    // --- Event Listeners ---
+
+    // Quick Date Selection
+    quickDateBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all
+            quickDateBtns.forEach(b => b.classList.remove('active'));
+            customDateBtn.classList.remove('active');
+            
+            // Set active
+            btn.classList.add('active');
+            selectedQuickDays = parseInt(btn.getAttribute('data-days'), 10);
+            isCustomDate = false;
+            
+            // Hide custom date picker
+            customDateContainer.classList.add('hidden');
+            expiryDateInput.removeAttribute('required');
+        });
+    });
+
+    // Custom Date Toggle
+    customDateBtn.addEventListener('click', () => {
+        quickDateBtns.forEach(b => b.classList.remove('active'));
+        customDateBtn.classList.add('active');
+        isCustomDate = true;
+        
+        customDateContainer.classList.remove('hidden');
+        expiryDateInput.setAttribute('required', 'true');
+        expiryDateInput.focus();
+    });
+
+    // Form submission
     foodForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        
+        let finalExpiryDate = '';
+        
+        if (isCustomDate) {
+            finalExpiryDate = expiryDateInput.value;
+        } else {
+            const date = new Date();
+            date.setDate(date.getDate() + selectedQuickDays);
+            finalExpiryDate = date.toISOString().split('T')[0];
+        }
 
         const newItem = {
             id: Date.now().toString(),
             name: foodNameInput.value.trim(),
-            expiryDate: expiryDateInput.value,
+            expiryDate: finalExpiryDate,
             category: foodCategoryInput.value,
             createdAt: new Date().toISOString()
         };
@@ -33,35 +90,44 @@ document.addEventListener('DOMContentLoaded', () => {
         saveItems();
         renderItems();
         
-        // Reset form except for the date
+        // Reset form name input
         foodNameInput.value = '';
         foodNameInput.focus();
     });
 
-    // Save items to localStorage
+    // --- Helper Functions ---
+
+    function setGreeting() {
+        const hour = new Date().getHours();
+        let greeting = 'Good evening';
+        if (hour >= 5 && hour < 12) greeting = 'Good morning';
+        else if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+        
+        greetingText.textContent = `${greeting}, favour 👋`;
+    }
+
     function saveItems() {
         localStorage.setItem('leftoverFoodItems', JSON.stringify(foodItems));
     }
 
-    // Delete item handler
     function deleteItem(id) {
         foodItems = foodItems.filter(item => item.id !== id);
         saveItems();
         renderItems();
     }
 
-    // Render items to the DOM
     function renderItems() {
         foodList.innerHTML = '';
         
+        // Update header summary
+        updateHeaderSummary();
+        
         if (foodItems.length === 0) {
             emptyState.classList.remove('hidden');
-            totalItemsSpan.textContent = '0 items';
             return;
         }
 
         emptyState.classList.add('hidden');
-        totalItemsSpan.textContent = `${foodItems.length} item${foodItems.length !== 1 ? 's' : ''}`;
 
         // Sort items by expiry date (closest first)
         const sortedItems = [...foodItems].sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
@@ -73,11 +139,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const itemElement = document.createElement('div');
             itemElement.className = 'food-item';
             
+            // Format category for display (extract emoji and text if possible)
+            let categoryDisplay = item.category;
+            const categoryMap = {
+                'meal': 'Cooked Meal',
+                'produce': 'Produce',
+                'dairy': 'Dairy',
+                'meat': 'Meat',
+                'other': 'Other'
+            };
+            if (categoryMap[item.category]) {
+                categoryDisplay = categoryMap[item.category];
+            }
+            
             itemElement.innerHTML = `
                 <div class="item-info">
                     <span class="item-name">${escapeHTML(item.name)}</span>
                     <div class="item-meta">
-                        <span class="category-tag">${item.category}</span>
+                        <span class="category-tag">${categoryDisplay}</span>
                         <span class="expiry-text">Expires: ${formatDate(item.expiryDate)}</span>
                     </div>
                 </div>
@@ -95,15 +174,39 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add event listeners to delete buttons
         document.querySelectorAll('.btn-delete').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                deleteItem(e.target.getAttribute('data-id'));
+                deleteItem(e.target.closest('.btn-delete').getAttribute('data-id'));
             });
         });
     }
 
-    // Calculate difference in days
+    function updateHeaderSummary() {
+        const total = foodItems.length;
+        if (total === 0) {
+            summaryText.textContent = '0 items · Nothing expires soon';
+            return;
+        }
+        
+        let expiringSoon = 0;
+        foodItems.forEach(item => {
+            const days = calculateDaysLeft(item.expiryDate);
+            if (days <= 2) {
+                expiringSoon++;
+            }
+        });
+        
+        const itemText = total === 1 ? '1 item' : `${total} items`;
+        let soonText = 'Nothing expires soon';
+        
+        if (expiringSoon > 0) {
+            soonText = `<span style="color: var(--status-urgent)">${expiringSoon} expiring soon</span>`;
+        }
+        
+        summaryText.innerHTML = `${itemText} · ${soonText}`;
+    }
+
     function calculateDaysLeft(expiryDateStr) {
         const expiry = new Date(expiryDateStr);
-        expiry.setHours(23, 59, 59, 999); // Set to end of the expiry day
+        expiry.setHours(23, 59, 59, 999); 
         
         const now = new Date();
         const diffTime = expiry - now;
@@ -112,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return diffDays;
     }
 
-    // Get status class and text based on days left
     function getStatusInfo(daysLeft) {
         if (daysLeft < 0) {
             return { className: 'status-urgent', text: 'Expired' };
@@ -125,13 +227,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Helper to format date
     function formatDate(dateString) {
         const options = { month: 'short', day: 'numeric', year: 'numeric' };
-        return new Date(dateString).toLocaleDateString(undefined, options);
+        // Adjust for timezone offsets by parsing it carefully, but standard toLocaleDateString works okay here
+        const d = new Date(dateString);
+        // add timezone offset to prevent date shifting back 1 day locally
+        d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+        return d.toLocaleDateString(undefined, options);
     }
 
-    // Simple HTML escaping to prevent XSS
     function escapeHTML(str) {
         const div = document.createElement('div');
         div.textContent = str;
